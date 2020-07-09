@@ -1,6 +1,9 @@
 package ch.dams333.taupeGun;
 
 import ch.dams333.damsLib.DamsLIB;
+import ch.dams333.taupeGun.commands.admin.StartCommand;
+import ch.dams333.taupeGun.commands.players.ClaimCommand;
+import ch.dams333.taupeGun.commands.players.TaupeCommand;
 import ch.dams333.taupeGun.events.connexion.JoinEvent;
 import ch.dams333.taupeGun.events.interactions.InventoryClickEvent;
 import ch.dams333.taupeGun.events.interactions.ItemClickEvent;
@@ -10,13 +13,23 @@ import ch.dams333.taupeGun.events.status.MoveEvent;
 import ch.dams333.taupeGun.gameState.GameState;
 import ch.dams333.taupeGun.inventories.ConfigInventoriesGenerator;
 import ch.dams333.taupeGun.inventories.TeamsInventoryGenerator;
+import ch.dams333.taupeGun.kit.Kit;
+import ch.dams333.taupeGun.kit.KitManager;
+import ch.dams333.taupeGun.scoreboard.ScoreboardManager;
+import ch.dams333.taupeGun.tasks.GameTask;
+import ch.dams333.taupeGun.teams.Team;
 import ch.dams333.taupeGun.teams.TeamsManager;
+import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class TaupeGun extends JavaPlugin {
 
@@ -37,6 +50,13 @@ public class TaupeGun extends JavaPlugin {
     public ConfigInventoriesGenerator configInventoriesGenerator;
     public TeamsInventoryGenerator teamsInventoryGenerator;
     public TeamsManager teamsManager;
+    public ScoreboardManager scoreboardManager;
+    public KitManager kitManager;
+
+    public List<Player> inGame;
+
+    public Map<Integer, List<Player>> taupesTeams;
+    public Map<Player, Kit> kits;
 
     @Override
     public void onEnable(){
@@ -51,11 +71,17 @@ public class TaupeGun extends JavaPlugin {
         taupesPerTeam = 1; //1
         taupeTeams = 5; //5
 
+        inGame = new ArrayList<>();
+        taupesTeams = new HashMap<>();
+        kits = new HashMap<>();
+
         API = (DamsLIB) getServer().getPluginManager().getPlugin("DamsLIB");
 
         this.configInventoriesGenerator = new ConfigInventoriesGenerator(this);
         this.teamsInventoryGenerator = new TeamsInventoryGenerator(this);
         this.teamsManager = new TeamsManager(this);
+        this.scoreboardManager = new ScoreboardManager(this);
+        this.kitManager = new KitManager(this);
 
         this.gameState = GameState.PREGAME;
 
@@ -66,6 +92,10 @@ public class TaupeGun extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new FoodEvent(this), this);
         getServer().getPluginManager().registerEvents(new ItemClickEvent(this), this);
         getServer().getPluginManager().registerEvents(new InventoryClickEvent(this), this);
+
+        getCommand("start").setExecutor(new StartCommand(this));
+        getCommand("claim").setExecutor(new ClaimCommand(this));
+        getCommand("t").setExecutor(new TaupeCommand(this));
     }
 
 
@@ -106,5 +136,142 @@ public class TaupeGun extends JavaPlugin {
         }
 
         return hourSTR + ":" + minSTR + ":" + secSTR;
+    }
+
+    public void startGame() {
+        setState(GameState.STARTING);
+        for(Player p : Bukkit.getOnlinePlayers()){
+            p.getInventory().clear();
+            p.setGameMode(GameMode.SURVIVAL);
+            p.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 999999, 255));
+            p.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 999999, 255));
+            p.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_DIGGING, 999999, 255));
+            scoreboardManager.createScoreboard(p);
+            inGame.add(p);
+        }
+        for(Team team : teamsManager.getTeams()){
+            if(team.isActivated()) {
+                Bukkit.broadcastMessage(ChatColor.GRAY + "Téléportation de l'équipe " + team.getName());
+                Location spawn = new Location(Bukkit.getWorld("world"), API.random(-800, 800), 255, API.random(-800, 800));
+                spawn = transformSpawn(spawn);
+                spawn.add(0, 1, 0);
+                for (Player p : team.getPlayers()) {
+                    p.teleport(spawn);
+                }
+            }
+        }
+
+        GameTask gameTask = new GameTask(this);
+        gameTask.runTaskTimer(this, 20, 20);
+
+        Bukkit.getWorld("world").setTime(0);
+        WorldBorder worldBorder = Bukkit.getWorld("world").getWorldBorder();
+        worldBorder.setCenter(0, 0);
+        worldBorder.setSize(2000);
+        worldBorder.setWarningDistance(10);
+        worldBorder.setDamageAmount(1);
+        for(Player p : Bukkit.getOnlinePlayers()){
+            for(PotionEffect potionEffect : p.getActivePotionEffects()){
+                p.removePotionEffect(potionEffect.getType());
+            }
+            for(ItemStack it : this.startInventory){
+                p.getInventory().addItem(it);
+            }
+        }
+    }
+
+    private Location transformSpawn(Location loc){
+        while (loc.getBlock().getType() == Material.AIR){
+            loc.add(0, -1, 0);
+        }
+        if(loc.getBlock().getType() == Material.WATER){
+            loc = new Location(Bukkit.getWorld("world"), API.random(-800, 800), 255, API.random(-800, 800));
+            loc = transformSpawn(loc);
+        }
+        return loc;
+    }
+
+    public void selectTaupes() {
+
+        List<Player> taupes = new ArrayList<>();
+
+        for(Team team : this.teamsManager.getTeams()){
+            if(team.isActivated()){
+                int toSelect = this.taupesPerTeam;
+                List<Player> teamPlayers = new ArrayList<>();
+                teamPlayers.addAll(team.getPlayers());
+                while (toSelect > 0){
+                    int selected = API.random(0, teamPlayers.size() - 1);
+                    API.titleManager.sendTitle(teamPlayers.get(selected), ChatColor.RED + "Vous êtes la taupe !", 30);
+                    API.titleManager.sendSubTitle(teamPlayers.get(selected), ChatColor.GRAY + "Ne le dites à personne", 30);
+                    Kit kit = kitManager.getRandomKit();
+
+                    teamPlayers.get(selected).sendMessage(ChatColor.RED + "Vous obtenez le kit: " + ChatColor.BOLD + kit.getName() + ChatColor.RESET + "" + ChatColor.RED + ". /claim pour le récupérer");
+                    this.kits.put(teamPlayers.get(selected), kit);
+
+                    taupes.add(teamPlayers.get(selected));
+                    teamPlayers.remove(teamPlayers.get(selected));
+                    toSelect--;
+                }
+            }
+        }
+
+        for(Player p : this.inGame){
+            if(!taupes.contains(p)){
+                p.sendMessage(ChatColor.GRAY + "Vous n'êtes pas la taupe !");
+            }
+        }
+
+
+        int needToCreateTeam = this.taupeTeams;
+        int taupesPerTeam = taupes.size() / this.taupeTeams;
+
+        int index = 1;
+
+        while (needToCreateTeam > 0){
+            int needToAdd = taupesPerTeam;
+            List<Player> team = new ArrayList<>();
+            while (needToAdd > 0){
+                int selected = API.random(0, taupes.size() - 1);
+                team.add(taupes.get(selected));
+                taupes.remove(taupes.get(selected));
+                needToAdd--;
+            }
+            this.taupesTeams.put(index, team);
+            index++;
+            needToCreateTeam--;
+        }
+
+    }
+
+    public void reduceBorder() {
+    }
+
+    public boolean isTaupe(Player p) {
+        for(int index : this.taupesTeams.keySet()){
+            for(Player pl : this.taupesTeams.get(index)){
+                if(pl.getUniqueId().equals(p.getUniqueId())){
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public void sendTaupeMessage(Player p, String message) {
+        int teamIndex = 0;
+        global:
+        for(int index : this.taupesTeams.keySet()){
+            for(Player pl : this.taupesTeams.get(index)){
+                if(pl.getUniqueId().equals(p.getUniqueId())){
+                    teamIndex = index;
+                    break global;
+                }
+            }
+        }
+
+        for(Player taupe : this.taupesTeams.get(teamIndex)){
+            taupe.sendMessage(ChatColor.RED + "[" + p.getName() + "] " + ChatColor.GRAY + message);
+        }
     }
 }

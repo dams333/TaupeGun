@@ -3,3 +3,13 @@ author: Dams333
 version: 1.0.0
 api-version: 1.13
 main: ch.dams333.taupeGun.TaupeGun
+commands:
+  start:
+    description: Demarre la game
+    permission: taupegun.commands.admin.start
+  t:
+    description: Permet de parler dans le chat de taupe
+  claim:
+    description: Permet de recuperer le kit de taupe
+  reveal:
+    description: Permet de se reveler comme taupe
