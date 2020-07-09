@@ -1,4 +1,5 @@
 name: TaupeGun
 author: Dams333
 version: 1.0.0
+api-version: 1.13
 main: ch.dams333.taupeGun.TaupeGun
