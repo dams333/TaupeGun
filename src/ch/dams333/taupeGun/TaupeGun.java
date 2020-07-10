@@ -3,10 +3,12 @@ package ch.dams333.taupeGun;
 import ch.dams333.damsLib.DamsLIB;
 import ch.dams333.taupeGun.commands.admin.StartCommand;
 import ch.dams333.taupeGun.commands.players.ClaimCommand;
+import ch.dams333.taupeGun.commands.players.RevealCommand;
 import ch.dams333.taupeGun.commands.players.TaupeCommand;
 import ch.dams333.taupeGun.events.connexion.JoinEvent;
 import ch.dams333.taupeGun.events.interactions.InventoryClickEvent;
 import ch.dams333.taupeGun.events.interactions.ItemClickEvent;
+import ch.dams333.taupeGun.events.status.DamageByEntityEvent;
 import ch.dams333.taupeGun.events.status.DamageEvent;
 import ch.dams333.taupeGun.events.status.FoodEvent;
 import ch.dams333.taupeGun.events.status.MoveEvent;
@@ -54,6 +56,7 @@ public class TaupeGun extends JavaPlugin {
     public KitManager kitManager;
 
     public List<Player> inGame;
+    public List<Player> revealed;
 
     public Map<Integer, List<Player>> taupesTeams;
     public Map<Player, Kit> kits;
@@ -70,8 +73,11 @@ public class TaupeGun extends JavaPlugin {
         startInventory = new ArrayList<>();
         taupesPerTeam = 1; //1
         taupeTeams = 5; //5
+        time = 0; //0
 
         inGame = new ArrayList<>();
+        revealed = new ArrayList<>();
+
         taupesTeams = new HashMap<>();
         kits = new HashMap<>();
 
@@ -92,10 +98,12 @@ public class TaupeGun extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new FoodEvent(this), this);
         getServer().getPluginManager().registerEvents(new ItemClickEvent(this), this);
         getServer().getPluginManager().registerEvents(new InventoryClickEvent(this), this);
+        getServer().getPluginManager().registerEvents(new DamageByEntityEvent(this), this);
 
         getCommand("start").setExecutor(new StartCommand(this));
         getCommand("claim").setExecutor(new ClaimCommand(this));
         getCommand("t").setExecutor(new TaupeCommand(this));
+        getCommand("reveal").setExecutor(new RevealCommand(this));
     }
 
 
@@ -178,6 +186,7 @@ public class TaupeGun extends JavaPlugin {
                 p.getInventory().addItem(it);
             }
         }
+        setState(GameState.GAME);
     }
 
     private Location transformSpawn(Location loc){
@@ -273,5 +282,102 @@ public class TaupeGun extends JavaPlugin {
         for(Player taupe : this.taupesTeams.get(teamIndex)){
             taupe.sendMessage(ChatColor.RED + "[" + p.getName() + "] " + ChatColor.GRAY + message);
         }
+    }
+
+    public boolean canReveal(Player p) {
+        if(isTaupe(p)){
+            if(!revealed.contains(p)){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public int getTaupeTeamNumber(Player p) {
+        for(int number : this.taupesTeams.keySet()){
+            if(this.taupesTeams.get(number).contains(p)){
+                return number;
+            }
+        }
+        return 0;
+    }
+
+    public int getTime() {
+        return this.time;
+    }
+
+
+    int time;
+
+    public void setTime(int time) {
+        this.time = time;
+    }
+
+    public void kill(Player p) {
+        Bukkit.broadcastMessage(p.getDisplayName() + ChatColor.GRAY + " est mort !");
+        p.setGameMode(GameMode.SPECTATOR);
+        p.setHealth(20);
+        p.setFoodLevel(20);
+        for(ItemStack it : p.getInventory()){
+            if(it != null){
+                p.getLocation().getWorld().dropItemNaturally(p.getLocation(), it);
+            }
+        }
+        p.getInventory().clear();
+        p.setDisplayName(ChatColor.GRAY + p.getName());
+        p.setPlayerListName(ChatColor.GRAY + p.getName());
+        this.inGame.remove(p);
+
+        this.teamsManager.removePlayer(p);
+
+        this.checkVictory();
+    }
+
+    public void killByPlayer(Player p, Player damager) {
+        this.kill(p);
+    }
+
+
+    private void checkVictory() {
+        for(int teamNumber : this.taupesTeams.keySet()){
+            boolean win = true;
+            for(Player p : this.inGame){
+                if(!this.taupesTeams.get(teamNumber).contains(p)){
+                    win = false;
+                }
+            }
+            if(win){
+                this.winTaupeTeam(teamNumber);
+                return;
+            }
+        }
+        for(Team team : this.teamsManager.getTeams()){
+            if(team.isActivated()){
+                if(team.getPlayers().size() > 0){
+                    for(Team teamTest : this.teamsManager.getTeams()){
+                        if(teamTest.isActivated() && !team.getName().equals(teamTest.getName())) {
+                            if (teamTest.getPlayers().size() > 0) {
+                                return;
+                            }
+                        }
+                    }
+                    for(Player p : team.getPlayers()){
+                        if(isTaupe(p)){
+                            return;
+                        }
+                    }
+                    this.winTeam(team);
+                    return;
+                }
+            }
+        }
+    }
+
+    private void winTeam(Team team) {
+        Bukkit.broadcastMessage(ChatColor.BOLD + "" + ChatColor.GOLD + "Victoire de l'équipe " + team.getChatColor() + team.getName() + ChatColor.GOLD + " !!!");
+    }
+
+    private void winTaupeTeam(int teamNumber) {
+        Bukkit.broadcastMessage(ChatColor.BOLD + "" + ChatColor.GOLD + "Victoire de l'équipe " + ChatColor.RED + "Taupe " + teamNumber + "" + ChatColor.GOLD + " !!!");
     }
 }

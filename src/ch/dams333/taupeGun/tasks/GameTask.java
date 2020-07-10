@@ -12,15 +12,19 @@ public class GameTask extends BukkitRunnable {
 
     public GameTask(TaupeGun main) {
         this.main = main;
-        time = 0;
+        time = 0; //0
     }
 
     @Override
     public void run() {
+        main.setTime(time);
         main.scoreboardManager.updateScoreboard(time);
 
         if(time == main.graceTime){
             Bukkit.broadcastMessage(ChatColor.GOLD + "Fin de la ériode d'invinvibilité");
+        }
+        if(time == main.pvpTime){
+            Bukkit.broadcastMessage(ChatColor.RED + "Le PVP est désormais activé !!!");
         }
 
         if(time == 1140){

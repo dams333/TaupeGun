@@ -82,7 +82,7 @@ public class KitManager {
 
         ItemStack potionS = new ItemStack(Material.SPLASH_POTION);
         PotionMeta sM = (PotionMeta) potionS.getItemMeta();
-        sM.addCustomEffect(new PotionEffect(PotionEffectType.SLOW, 0, 30), true);
+        sM.addCustomEffect(new PotionEffect(PotionEffectType.SLOW, 600, 0), true);
         sM.setDisplayName("Potion de slowness");
         sM.setColor(Color.PURPLE);
         potionS.setItemMeta(sM);
@@ -90,7 +90,7 @@ public class KitManager {
 
         ItemStack potionW = new ItemStack(Material.SPLASH_POTION);
         PotionMeta wM = (PotionMeta) potionW.getItemMeta();
-        wM.addCustomEffect(new PotionEffect(PotionEffectType.WEAKNESS, 0, 30), true);
+        wM.addCustomEffect(new PotionEffect(PotionEffectType.WEAKNESS, 400, 0), true);
         wM.setDisplayName("Potion de weakness");
         wM.setColor(Color.PURPLE);
         potionW.setItemMeta(wM);
@@ -98,7 +98,7 @@ public class KitManager {
 
         ItemStack potionP = new ItemStack(Material.SPLASH_POTION);
         PotionMeta pM = (PotionMeta) potionP.getItemMeta();
-        pM.addCustomEffect(new PotionEffect(PotionEffectType.POISON, 0, 20), true);
+        pM.addCustomEffect(new PotionEffect(PotionEffectType.POISON, 200, 0), true);
         pM.setDisplayName("Potion de poison");
         pM.setColor(Color.GREEN);
         potionP.setItemMeta(pM);

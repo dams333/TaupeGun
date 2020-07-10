@@ -143,4 +143,14 @@ public class TeamsManager {
             }
         }
     }
+
+    public void removePlayer(Player p) {
+        for(Team team : this.teams){
+            if(team.getPlayers().contains(p)){
+                int index = this.teams.indexOf(team);
+                team.removePlayer(p);
+                this.teams.set(index, team);
+            }
+        }
+    }
 }
