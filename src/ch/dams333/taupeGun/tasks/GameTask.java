@@ -35,7 +35,9 @@ public class GameTask extends BukkitRunnable {
         }
         if(time % 1200 == 0){
             int episode = time/1200 + 1;
-            Bukkit.broadcastMessage(ChatColor.GRAY + "----- " + ChatColor.RED + "Début de l'éipsode " + episode + ChatColor.GRAY + " -----");
+            if(episode != 1) {
+                Bukkit.broadcastMessage(ChatColor.GRAY + "----- " + ChatColor.RED + "Début de l'épisode " + episode + ChatColor.GRAY + " -----");
+            }
         }
 
         if(time == 1200){

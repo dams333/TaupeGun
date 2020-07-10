@@ -13,3 +13,8 @@ commands:
     description: Permet de recuperer le kit de taupe
   reveal:
     description: Permet de se reveler comme taupe
+  heal:
+    description: Soigne tous les joueurs
+    permission: taupegun.commands.admin.heal
+  coord:
+    description: Envoie ses coordonees

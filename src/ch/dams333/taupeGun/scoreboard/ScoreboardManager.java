@@ -75,4 +75,14 @@ public class ScoreboardManager {
 
         return minSTR + ":" + secSTR;
     }
+
+    public void reco(Player p) {
+        for(Player pl : scoreboards.keySet()){
+            if (pl.getUniqueId().equals(p.getUniqueId())) {
+                createScoreboard(p);
+                this.scoreboards.remove(pl);
+                return;
+            }
+        }
+    }
 }

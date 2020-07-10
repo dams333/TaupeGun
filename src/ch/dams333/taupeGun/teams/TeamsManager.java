@@ -153,4 +153,18 @@ public class TeamsManager {
             }
         }
     }
+
+    public void reco(Player p) {
+        for(Team team : this.teams){
+            for(Player pl : team.getPlayers()){
+                if(pl.getUniqueId().equals(p.getUniqueId())){
+                    int index = this.teams.indexOf(team);
+                    team.removePlayer(pl);
+                    team.addPlayer(p);
+                    this.teams.set(index, team);
+                    return;
+                }
+            }
+        }
+    }
 }

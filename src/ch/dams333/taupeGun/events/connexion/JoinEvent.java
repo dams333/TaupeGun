@@ -10,6 +10,8 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import java.util.List;
+
 public class JoinEvent implements Listener {
     TaupeGun main;
     public JoinEvent(TaupeGun taupeGun) {
@@ -18,6 +20,39 @@ public class JoinEvent implements Listener {
 
     @EventHandler
     public void join(PlayerJoinEvent e){
+
+        for(Player pl : main.inGame){
+            if(pl.getUniqueId().equals(e.getPlayer())){
+                main.inGame.remove(pl);
+                main.inGame.add(e.getPlayer());
+                break;
+            }
+        }
+
+        global:
+        for(int taupeTeamNumber : main.taupesTeams.keySet()){
+            for(Player pl : main.taupesTeams.get(taupeTeamNumber)){
+                if(pl.getUniqueId().equals(e.getPlayer())){
+                    List<Player> team = main.taupesTeams.get(taupeTeamNumber);
+                    team.remove(pl);
+                    team.add(pl);
+                    main.taupesTeams.put(taupeTeamNumber, team);
+                    break global;
+                }
+            }
+        }
+
+        for(Player pl : main.kits.keySet()){
+            if(pl.getUniqueId().equals(e.getPlayer().getUniqueId())){
+                main.kits.put(e.getPlayer(), main.kits.get(pl));
+                main.kits.remove(pl);
+                break;
+            }
+        }
+
+        main.teamsManager.reco(e.getPlayer());
+        main.scoreboardManager.reco(e.getPlayer());
+
         if(main.isState(GameState.PREGAME)){
             if(new Location(Bukkit.getWorld("world"), 0, 149, 0).getBlock().getType() != Material.BARRIER){
                 for(int x = - 50; x <= 50; x++){

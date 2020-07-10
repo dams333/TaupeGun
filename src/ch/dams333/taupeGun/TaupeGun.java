@@ -1,11 +1,14 @@
 package ch.dams333.taupeGun;
 
 import ch.dams333.damsLib.DamsLIB;
+import ch.dams333.taupeGun.commands.admin.HealCommand;
 import ch.dams333.taupeGun.commands.admin.StartCommand;
 import ch.dams333.taupeGun.commands.players.ClaimCommand;
+import ch.dams333.taupeGun.commands.players.CoordCommand;
 import ch.dams333.taupeGun.commands.players.RevealCommand;
 import ch.dams333.taupeGun.commands.players.TaupeCommand;
 import ch.dams333.taupeGun.events.connexion.JoinEvent;
+import ch.dams333.taupeGun.events.interactions.ChatEvent;
 import ch.dams333.taupeGun.events.interactions.InventoryClickEvent;
 import ch.dams333.taupeGun.events.interactions.ItemClickEvent;
 import ch.dams333.taupeGun.events.status.DamageByEntityEvent;
@@ -18,6 +21,7 @@ import ch.dams333.taupeGun.inventories.TeamsInventoryGenerator;
 import ch.dams333.taupeGun.kit.Kit;
 import ch.dams333.taupeGun.kit.KitManager;
 import ch.dams333.taupeGun.scoreboard.ScoreboardManager;
+import ch.dams333.taupeGun.tasks.BorderTask;
 import ch.dams333.taupeGun.tasks.GameTask;
 import ch.dams333.taupeGun.teams.Team;
 import ch.dams333.taupeGun.teams.TeamsManager;
@@ -99,11 +103,14 @@ public class TaupeGun extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new ItemClickEvent(this), this);
         getServer().getPluginManager().registerEvents(new InventoryClickEvent(this), this);
         getServer().getPluginManager().registerEvents(new DamageByEntityEvent(this), this);
+        getServer().getPluginManager().registerEvents(new ChatEvent(this), this);
 
         getCommand("start").setExecutor(new StartCommand(this));
         getCommand("claim").setExecutor(new ClaimCommand(this));
         getCommand("t").setExecutor(new TaupeCommand(this));
         getCommand("reveal").setExecutor(new RevealCommand(this));
+        getCommand("heal").setExecutor(new HealCommand(this));
+        getCommand("coord").setExecutor(new CoordCommand(this));
     }
 
 
@@ -116,6 +123,10 @@ public class TaupeGun extends JavaPlugin {
 
 
     public void joinSpectator(Player p) {
+        p.teleport(new Location(Bukkit.getWorld("world"), 0, 150, 0));
+        p.setGameMode(GameMode.SPECTATOR);
+        p.setHealth(20);
+        p.setFoodLevel(20);
     }
 
     public String getTimeIntoString(int seconds){
@@ -254,6 +265,8 @@ public class TaupeGun extends JavaPlugin {
     }
 
     public void reduceBorder() {
+        BorderTask borderTask = new BorderTask(this);
+        borderTask.runTaskTimer(this, 20, 20);
     }
 
     public boolean isTaupe(Player p) {
